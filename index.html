@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Паспортный стол Ада</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="host">
+    <img src="demon.png" alt="Дьявол">
+  </aside>
+
+  <main class="desk">
+
+    <h1>ПАСПОРТНЫЙ СТОЛ АДА</h1>
+    <p class="subtitle">Заполните анкету. Ошибок не бывает.</p>
+
+    <div class="form-step active" data-step="1">
+      <label>Имя (или кличка)</label>
+      <input type="text" id="name" placeholder="Впиши. Мы всё равно знаем.">
+      <button onclick="nextStep()">Подписать</button>
+    </div>
+
+    <div class="form-step" data-step="2">
+      <label>Твой главный грех</label>
+      <select id="sin">
+        <option>Гордыня</option>
+        <option>Жадность</option>
+        <option>Гнев</option>
+        <option>Зависть</option>
+        <option>Блуд</option>
+        <option>Чревоугодие</option>
+        <option>Уныние</option>
+      </select>
+      <button onclick="nextStep()">Признать</button>
+    </div>
+
+    <div class="form-step" data-step="3">
+      <label>Чего в тебе меньше всего</label>
+      <select id="virtue">
+        <option>Смирения</option>
+        <option>Любви</option>
+        <option>Терпения</option>
+        <option>Усердия</option>
+        <option>Доброты</option>
+        <option>Умеренности</option>
+        <option>Целомудрия</option>
+      </select>
+      <button onclick="nextStep()">Зафиксировать</button>
+    </div>
+
+    <div class="form-step" data-step="4">
+      <label>Твоя отличительная черта</label>
+      <select id="trait">
+        <option>Лень</option>
+        <option>Злость</option>
+        <option>Упрямство</option>
+        <option>Мизантропия</option>
+        <option>Умственная отсталость</option>
+      </select>
+      <button onclick="nextStep()">Записать</button>
+    </div>
+
+    <div class="form-step" data-step="5">
+      <label>О чём ты мечтал большую часть жизни</label>
+      <textarea id="dream" placeholder="Можешь соврать. Мы учтём."></textarea>
+      <button onclick="submitForm()">Вынести вердикт</button>
+    </div>
+
+  </main>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
