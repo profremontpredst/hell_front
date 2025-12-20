@@ -1,12 +1,6 @@
-let currentStep = 1;
+document.getElementById("hellForm").addEventListener("submit", (e) => {
+  e.preventDefault();
 
-function nextStep() {
-  document.querySelector(`[data-step="${currentStep}"]`).classList.remove('active');
-  currentStep++;
-  document.querySelector(`[data-step="${currentStep}"]`).classList.add('active');
-}
-
-function submitForm() {
   const data = {
     name: name.value,
     sin: sin.value,
@@ -15,7 +9,9 @@ function submitForm() {
     dream: dream.value
   };
 
-  console.log('VERDICT DATA:', data);
+  console.log("HELL DOSSIER:", data);
 
-  Telegram.WebApp.showAlert("Досье передано. Дьявол ждёт вас в чате.");
-}
+  Telegram.WebApp.showAlert(
+    "Досье принято.\nСотрудник паспортного стола Ада свяжется с вами."
+  );
+});
