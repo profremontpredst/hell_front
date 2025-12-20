@@ -1,0 +1,87 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #0a0a0a;
+  color: #eee;
+  font-family: 'Georgia', serif;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+.host {
+  width: 35%;
+  background: radial-gradient(circle at center, #400 0%, #000 70%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.host img {
+  max-height: 90%;
+  filter: drop-shadow(0 0 40px #900);
+}
+
+.desk {
+  width: 65%;
+  padding: 24px;
+  background:
+    linear-gradient(180deg, rgba(30,0,0,0.8), rgba(10,0,0,1)),
+    repeating-linear-gradient(
+      45deg,
+      rgba(120,0,0,0.15),
+      rgba(120,0,0,0.15) 2px,
+      transparent 2px,
+      transparent 6px
+    );
+}
+
+h1 {
+  letter-spacing: 0.2em;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-bottom: 24px;
+}
+
+.form-step {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-step.active {
+  display: flex;
+}
+
+label {
+  font-size: 14px;
+}
+
+input, select, textarea {
+  background: #120000;
+  border: 1px solid #400;
+  color: #fff;
+  padding: 10px;
+}
+
+textarea {
+  min-height: 80px;
+}
+
+button {
+  margin-top: 12px;
+  background: #500;
+  border: none;
+  color: #fff;
+  padding: 12px;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+}
