@@ -39,10 +39,11 @@ body {
 
 .cover img {
   position: absolute;
-  right: 10%;
+  right: 0;
   bottom: -15%;
   height: 130%;
   filter: drop-shadow(0 0 30px #800);
+  transform: translateX(-60px);
 }
 
 .cover-label {
