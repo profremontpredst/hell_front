@@ -1,11 +1,5 @@
-// =====================
-// СОСТОЯНИЕ
-// =====================
 let hellDossier = {};
 
-// =====================
-// DOM
-// =====================
 const form = document.getElementById("hellForm");
 const formScreen = document.getElementById("formScreen");
 const passportScreen = document.getElementById("passportScreen");
@@ -15,18 +9,12 @@ const btnCamera = document.getElementById("openCamera");
 const btnUpload = document.getElementById("uploadPhoto");
 const btnSkip = document.getElementById("skipPhoto");
 
-// =====================
-// ЖЁСТКИЙ СТАРТ (ФИКС)
-// =====================
-document.addEventListener("DOMContentLoaded", () => {
-  // ВСЕГДА стартуем с анкеты
+// ЖЁСТКИЙ СТАРТ: ВСЕГДА АНКЕТА
+window.addEventListener("load", () => {
   formScreen.style.display = "block";
   passportScreen.classList.add("hidden");
 });
 
-// =====================
-// SUBMIT АНКЕТЫ
-// =====================
 form.addEventListener("submit", (e) => {
   e.preventDefault();
 
@@ -39,14 +27,11 @@ form.addEventListener("submit", (e) => {
     photo: null
   };
 
-  // переключаем экраны
   formScreen.style.display = "none";
   passportScreen.classList.remove("hidden");
 });
 
-// =====================
-// ФОТО (РАБОТАЕТ ВЕЗДЕ)
-// =====================
+// Фото — гарантированный способ
 btnCamera.onclick = () => pickImage(true);
 btnUpload.onclick = () => pickImage(false);
 
