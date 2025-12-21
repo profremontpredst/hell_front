@@ -15,9 +15,9 @@
 
 <div class="scene">
 
-  <div class="panel">
+  <!-- ЭКРАН АНКЕТЫ -->
+  <div class="panel" id="formScreen">
 
-    <!-- ОБЛОЖКА -->
     <div class="cover">
       <img src="demon.png" alt="Сотрудник паспортного стола Ада">
       <div class="cover-label">
@@ -27,66 +27,64 @@
     </div>
 
     <h1>ПОМНИ О СМЕРТИ</h1>
-    <p class="subtitle">Умирать всегда страшно не потому, что больно.  
-А потому что неизвестно — что дальше.  
-
-Заполни анкету и узнай,  
-какую роль ты получишь после смерти</p>
+    <p class="subtitle">
+      Умирать всегда страшно не потому, что больно.<br>
+      А потому что неизвестно — что дальше.<br><br>
+      Заполни анкету и узнай,<br>
+      какую роль ты получишь после смерти
+    </p>
 
     <form id="hellForm">
-
       <div class="field">
         <label>Имя / кличка</label>
-        <input type="text" id="name" placeholder="Мы всё равно знаем" required>
+        <input type="text" id="name" required>
       </div>
 
       <div class="field">
         <label>Главный грех</label>
         <select id="sin">
-          <option>Гордыня</option>
-          <option>Жадность</option>
-          <option>Гнев</option>
-          <option>Зависть</option>
-          <option>Блуд</option>
-          <option>Чревоугодие</option>
-          <option>Уныние</option>
+          <option>Гордыня</option><option>Жадность</option><option>Гнев</option>
+          <option>Зависть</option><option>Блуд</option><option>Чревоугодие</option><option>Уныние</option>
         </select>
       </div>
 
       <div class="field">
         <label>Чего в тебе меньше всего</label>
         <select id="virtue">
-          <option>Смирения</option>
-          <option>Любви</option>
-          <option>Терпения</option>
-          <option>Усердия</option>
-          <option>Доброты</option>
-          <option>Умеренности</option>
-          <option>Целомудрия</option>
+          <option>Смирения</option><option>Любви</option><option>Терпения</option>
+          <option>Усердия</option><option>Доброты</option><option>Умеренности</option><option>Целомудрия</option>
         </select>
       </div>
 
       <div class="field">
         <label>Отличительная черта</label>
         <select id="trait">
-          <option>Лень</option>
-          <option>Злость</option>
-          <option>Упрямство</option>
-          <option>Мизантропия</option>
-          <option>Умственная отсталость</option>
+          <option>Лень</option><option>Злость</option><option>Упрямство</option>
+          <option>Мизантропия</option><option>Умственная отсталость</option>
         </select>
       </div>
 
       <div class="field">
         <label>О чём ты мечтал</label>
-        <textarea id="dream" placeholder="Можно соврать. Мы учтём."></textarea>
+        <textarea id="dream"></textarea>
       </div>
 
       <button type="submit">УЗНАТЬ КЕМ Я БУДУ</button>
-
     </form>
-
   </div>
+
+  <!-- ЭКРАН ПАСПОРТА -->
+  <div class="passport-screen hidden" id="passportScreen">
+    <div class="passport-photo" id="passportPhoto">
+      <div class="photo-placeholder">Фото для адского паспорта</div>
+    </div>
+    <div class="passport-actions">
+      <button id="openCamera" type="button">📸 Сфотографироваться</button>
+      <button id="uploadPhoto" type="button">📁 Загрузить фото</button>
+      <button id="skipPhoto" type="button">Пропустить</button>
+    </div>
+  </div>
+
 </div>
 
 <script src="app.js"></script>
