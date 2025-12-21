@@ -1,18 +1,5 @@
-// =====================
-// СОСТОЯНИЕ АНКЕТЫ
-// =====================
-let hellDossier = {
-  name: "",
-  sin: "",
-  virtue: "",
-  trait: "",
-  dream: "",
-  photo: null // base64 фото (потом уйдёт на сервер)
-};
+let hellDossier = {};
 
-// =====================
-// DOM
-// =====================
 const form = document.getElementById("hellForm");
 const formScreen = document.getElementById("formScreen");
 const passportScreen = document.getElementById("passportScreen");
@@ -22,9 +9,6 @@ const btnCamera = document.getElementById("openCamera");
 const btnUpload = document.getElementById("uploadPhoto");
 const btnSkip = document.getElementById("skipPhoto");
 
-// =====================
-// SUBMIT АНКЕТЫ
-// =====================
 form.addEventListener("submit", (e) => {
   e.preventDefault();
 
@@ -37,69 +21,35 @@ form.addEventListener("submit", (e) => {
     photo: null
   };
 
-  console.log("HELL DOSSIER:", hellDossier);
-
-  // переключаем экран
   formScreen.style.display = "none";
   passportScreen.classList.remove("hidden");
 });
 
-// =====================
-// КАМЕРА TELEGRAM
-// =====================
-btnCamera.addEventListener("click", () => {
-  if (!Telegram.WebApp || !Telegram.WebApp.showCamera) {
-    Telegram.WebApp.showAlert("Камера недоступна");
-    return;
-  }
+// камера/галерея — гарантированный способ
+btnCamera.onclick = () => pickImage(true);
+btnUpload.onclick = () => pickImage(false);
 
-  Telegram.WebApp.showCamera({
-    front: true
-  }, (photo) => {
-    if (!photo) return;
+btnSkip.onclick = () => {
+  Telegram.WebApp.showAlert("Фото пропущено");
+};
 
-    hellDossier.photo = photo;
-    setPassportBackground(photo);
-  });
-});
-
-// =====================
-// ЗАГРУЗКА ИЗ ГАЛЕРЕИ
-// =====================
-btnUpload.addEventListener("click", () => {
+function pickImage(fromCamera){
   const input = document.createElement("input");
   input.type = "file";
   input.accept = "image/*";
+  if(fromCamera) input.capture = "user";
 
   input.onchange = () => {
     const file = input.files[0];
-    if (!file) return;
-
+    if(!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       hellDossier.photo = reader.result;
-      setPassportBackground(reader.result);
+      passportPhoto.style.backgroundImage = `url(${reader.result})`;
+      const p = passportPhoto.querySelector(".photo-placeholder");
+      if(p) p.remove();
     };
     reader.readAsDataURL(file);
   };
-
   input.click();
-});
-
-// =====================
-// ПРОПУСТИТЬ ФОТО
-// =====================
-btnSkip.addEventListener("click", () => {
-  hellDossier.photo = null;
-  Telegram.WebApp.showAlert("Фото пропущено. Паспорт будет оформлен без лица.");
-});
-
-// =====================
-// УСТАНОВКА ФОТО ФОНОМ
-// =====================
-function setPassportBackground(src) {
-  passportPhoto.style.backgroundImage = `url(${src})`;
-
-  const placeholder = passportPhoto.querySelector(".photo-placeholder");
-  if (placeholder) placeholder.remove();
 }
