@@ -7,41 +7,70 @@ const btnCamera = document.getElementById("openCamera");
 const btnUpload = document.getElementById("uploadPhoto");
 const btnSkip = document.getElementById("skipPhoto");
 
-// ЖЁСТКИЙ СТАРТ
+// СТАРТ: ВСЕГДА АНКЕТА
 formScreen.style.display = "block";
 passportScreen.classList.add("hidden");
 passportScreen.style.display = "none";
 
+// SUBMIT
 form.addEventListener("submit", (e) => {
   e.preventDefault();
-
-  // ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ
   formScreen.style.display = "none";
   passportScreen.classList.remove("hidden");
   passportScreen.style.display = "flex";
 });
 
-// Фото — через input (работает везде)
-btnCamera.onclick = () => pickImage(true);
-btnUpload.onclick = () => pickImage(false);
+// ===== КАМЕРА (МАКСИМАЛЬНО ПРИНУДИТЕЛЬНО) =====
+btnCamera.onclick = () => openCameraOnly();
+
+// ===== ГАЛЕРЕЯ =====
+btnUpload.onclick = () => openGallery();
+
 btnSkip.onclick = () => Telegram.WebApp.showAlert("Фото пропущено");
 
-function pickImage(fromCamera){
+function openCameraOnly() {
   const input = document.createElement("input");
   input.type = "file";
   input.accept = "image/*";
-  if(fromCamera) input.capture = "user";
+  input.setAttribute("capture", "environment"); // принудительно камера
+  input.style.display = "none";
+
+  document.body.appendChild(input);
 
   input.onchange = () => {
-    const file = input.files[0];
-    if(!file) return;
-    const r = new FileReader();
-    r.onload = () => {
-      passportPhoto.style.backgroundImage = `url(${r.result})`;
-      const p = passportPhoto.querySelector(".photo-placeholder");
-      if(p) p.remove();
-    };
-    r.readAsDataURL(file);
+    const file = input.files && input.files[0];
+    if (!file) return;
+    showImage(file);
+    document.body.removeChild(input);
   };
+
   input.click();
+}
+
+function openGallery() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.style.display = "none";
+
+  document.body.appendChild(input);
+
+  input.onchange = () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    showImage(file);
+    document.body.removeChild(input);
+  };
+
+  input.click();
+}
+
+function showImage(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    passportPhoto.style.backgroundImage = `url(${r.result})`;
+    const p = passportPhoto.querySelector(".photo-placeholder");
+    if (p) p.remove();
+  };
+  r.readAsDataURL(file);
 }
