@@ -24,7 +24,7 @@ form.addEventListener("submit", (e) => {
 btnCamera.onclick = async () => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user" },
+      video: { facingMode: { ideal: "environment" } },
       audio: false
     });
 
@@ -49,9 +49,26 @@ btnCamera.onclick = async () => {
       font-weight:bold; letter-spacing:.15em;
     `;
 
-    overlay.appendChild(video);
-    overlay.appendChild(snap);
-    document.body.appendChild(overlay);
+    // лазер (виден пользователю при наведении)
+const laser = document.createElement("div");
+laser.style.cssText = `
+  position:fixed;
+  top:50%;
+  left:50%;
+  width:16px;
+  height:16px;
+  background:rgba(255,0,0,.55);
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  box-shadow:0 0 18px rgba(255,0,0,.9);
+  pointer-events:none;
+  z-index:1001;
+`;
+
+overlay.appendChild(video);
+overlay.appendChild(laser);
+overlay.appendChild(snap);
+document.body.appendChild(overlay);
 
     snap.onclick = () => {
       const canvas = document.createElement("canvas");
@@ -59,6 +76,17 @@ btnCamera.onclick = async () => {
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0);
+      // === ЛАЗЕР В ФОТО (ЦЕНТР) ===
+const cx = canvas.width / 2;
+const cy = canvas.height / 2;
+const r = Math.min(canvas.width, canvas.height) * 0.015;
+
+ctx.beginPath();
+ctx.arc(cx, cy, r, 0, Math.PI * 2);
+ctx.fillStyle = "rgba(255,0,0,0.55)";
+ctx.shadowColor = "rgba(255,0,0,0.9)";
+ctx.shadowBlur = r * 2;
+ctx.fill();
 
       const img = canvas.toDataURL("image/jpeg", 0.9);
       passportPhoto.style.backgroundImage = `url(${img})`;
