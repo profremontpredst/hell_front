@@ -86,15 +86,12 @@
     </form>
   </div>
 
-  <!-- ЭКРАН ПАСПОРТА (ЖЁСТКО СКРЫТ НА СТАРТЕ) -->
+  <!-- ЭКРАН ПАСПОРТА (ТЕПЕРЬ С ГРАФИЧЕСКИМ КЛЮЧОМ) -->
   <div class="passport-screen hidden" id="passportScreen" style="display:none">
-    <div class="passport-photo" id="passportPhoto">
-      <div class="photo-placeholder">Фото для адского паспорта</div>
-    </div>
-    <div class="passport-actions">
-      <button id="openCamera" type="button">📸 Сфотографироваться</button>
-      <button id="uploadPhoto" type="button">📁 Загрузить фото</button>
-      <button id="skipPhoto" type="button">Пропустить</button>
+    <div class="passport-lock" id="patternLock"></div>
+    
+    <div class="devil-fail hidden" id="devilFail">
+      <img src="devil-laugh.png" alt="Смеющийся дьявол">
     </div>
   </div>
 
