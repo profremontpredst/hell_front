@@ -95,32 +95,19 @@ button {
   letter-spacing: 0.15em;
 }
 
-/* ПАСПОРТ */
-.hidden { display: none; }
+/* ОБЩЕЕ */
+.hidden { display: none !important; }
 
+/* ПАСПОРТ */
 .passport-screen {
   position: fixed;
   inset: 0;
   background: #000;
   display: flex;
   flex-direction: column;
-  z-index: 999;
-}
-
-.passport-photo {
-  flex: 1;
-  background: #000 center/cover no-repeat;
-  display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.photo-placeholder {
-  color: #ccc;
-  opacity: 0.6;
-  border: 1px dashed #500;
-  padding: 18px;
-  background: rgba(0,0,0,0.6);
+  z-index: 999;
 }
 
 /* ===== ГРАФИЧЕСКИЙ КЛЮЧ ===== */
@@ -137,6 +124,7 @@ button {
   background: rgba(20, 0, 0, 0.8);
   border: 2px solid #500;
   border-radius: 12px;
+  z-index: 10;
 }
 
 .pattern-dot {
@@ -151,9 +139,7 @@ button {
   z-index: 2;
 }
 
-.pattern-dot:hover {
-  background: #333;
-}
+.pattern-dot:hover { background: #333; }
 
 .pattern-dot.selected {
   background: #ff4444;
@@ -170,26 +156,28 @@ button {
   border-radius: 3px;
 }
 
-/* АНИМАЦИЯ ОШИБКИ */
+/* SHAKE */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
   20%, 40%, 60%, 80% { transform: translateX(5px); }
 }
 
-.shake {
-  animation: shake 0.5s ease-in-out;
-}
+.shake { animation: shake 0.5s ease-in-out; }
 
-/* СМЕЮЩИЙСЯ ДЬЯВОЛ */
+/* ===== ДЬЯВОЛ (ИСПРАВЛЕНО) ===== */
 .devil-fail {
   position: fixed;
   inset: 0;
   background: #000;
-  display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  display: none;
+}
+
+.devil-fail:not(.hidden) {
+  display: flex;
 }
 
 .devil-fail img {
@@ -202,7 +190,7 @@ button {
 @media (max-width: 768px) {
   .cover { height: 140px; }
   .cover img { right: -25%; height: 140%; opacity: 0.9; }
-  
+
   .passport-lock {
     width: 280px;
     height: 280px;
