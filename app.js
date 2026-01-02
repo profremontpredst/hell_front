@@ -57,6 +57,9 @@ btnCamera.onclick = async () => {
     video.srcObject = stream;
     video.style.cssText = "flex:1; object-fit:cover;";
 
+    // ЖДЕМ ЗАГРУЗКИ КАМЕРЫ
+    await video.play();
+
     const snap = document.createElement("button");
     snap.textContent = "СДЕЛАТЬ СНИМОК";
     snap.style.cssText = `
@@ -88,33 +91,114 @@ btnCamera.onclick = async () => {
       position:fixed;
       bottom:80px;
       right:16px;
-      padding:12px;
+      padding:12px 16px;
       background:#300;
       color:#fff;
-      border:none;
+      border:2px solid #500;
+      border-radius:8px;
+      font-weight:bold;
       z-index:1002;
+      cursor:pointer;
+      transition:all 0.2s;
     `;
 
-    // ВЫБОР ПАПКИ
-    folderBtn.onclick = () => {
-      const names = folders.map(f => f.name).join("\n");
-      const choice = prompt(
-        "Выбери папку:\n" + names,
-        folders.find(f => f.id === activeFolderId)?.name
-      );
+    // ПАНЕЛЬ ВЫБОРА ПАПОК
+    const folderPanel = document.createElement("div");
+    folderPanel.style.cssText = `
+      position:fixed;
+      bottom:140px;
+      right:16px;
+      background:#222;
+      border:2px solid #500;
+      border-radius:12px;
+      padding:12px;
+      display:none;
+      flex-direction:column;
+      gap:8px;
+      z-index:1003;
+      max-width:250px;
+      box-shadow:0 4px 20px rgba(0,0,0,0.7);
+    `;
 
-      const found = folders.find(f => f.name === choice);
-      if (found) {
-        activeFolderId = found.id;
-        saveFolders();
+    // Обновление кнопки папки
+    function updateFolderButton() {
+      const activeFolder = folders.find(f => f.id === activeFolderId);
+      if (activeFolder) {
+        folderBtn.textContent = `📁 ${activeFolder.name}`;
+      }
+    }
+
+    // Создание списка папок
+    function renderFolderList() {
+      folderPanel.innerHTML = '';
+      
+      folders.slice(0, MAX_FOLDERS).forEach(folder => {
+        const folderItem = document.createElement("button");
+        folderItem.textContent = folder.name;
+        folderItem.style.cssText = `
+          padding:10px 14px;
+          background:${folder.id === activeFolderId ? '#700' : '#444'};
+          color:#fff;
+          border:none;
+          border-radius:6px;
+          cursor:pointer;
+          text-align:left;
+          font-size:14px;
+          font-weight:${folder.id === activeFolderId ? 'bold' : 'normal'};
+          transition:all 0.2s;
+          border:${folder.id === activeFolderId ? '2px solid #900' : '2px solid transparent'};
+        `;
+        
+        folderItem.onmouseenter = () => {
+          if (folder.id !== activeFolderId) {
+            folderItem.style.background = '#555';
+          }
+        };
+        
+        folderItem.onmouseleave = () => {
+          if (folder.id !== activeFolderId) {
+            folderItem.style.background = '#444';
+          }
+        };
+        
+        folderItem.onclick = () => {
+          activeFolderId = folder.id;
+          saveFolders();
+          updateFolderButton();
+          folderPanel.style.display = 'none';
+        };
+        
+        folderPanel.appendChild(folderItem);
+      });
+    }
+
+    // Обработчик клика на кнопку папки
+    folderBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (folderPanel.style.display === 'flex') {
+        folderPanel.style.display = 'none';
+      } else {
+        renderFolderList();
+        folderPanel.style.display = 'flex';
       }
     };
+
+    // ОБРАБОТЧИК ДЛЯ OVERLAY, А НЕ ДЛЯ ВСЕГО DOCUMENT
+    overlay.addEventListener('click', (e) => {
+      if (!folderPanel.contains(e.target) && e.target !== folderBtn) {
+        folderPanel.style.display = 'none';
+      }
+    });
 
     overlay.appendChild(video);
     overlay.appendChild(laser);
     overlay.appendChild(folderBtn);
+    overlay.appendChild(folderPanel);
     overlay.appendChild(snap);
     document.body.appendChild(overlay);
+
+    // Инициализация кнопки
+    updateFolderButton();
 
     snap.onclick = () => {
       const canvas = document.createElement("canvas");
