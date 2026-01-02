@@ -1,3 +1,4 @@
+document.addEventListener("DOMContentLoaded", () => {
 // Режимы запуска
 const params = new URLSearchParams(window.location.search);
 const mode = params.get("mode") || "lock";
@@ -448,3 +449,4 @@ function launchCamera() {
     Telegram.WebApp.showAlert("Камера недоступна: " + err.message);
   });
 }
+});
