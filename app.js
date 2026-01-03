@@ -282,14 +282,71 @@ function launchCamera() {
   });
 }
 
-// ===== ИНИЦИАЛИЗАЦИЯ PATTERNLOCK В КОНЦЕ =====
-new PatternLock("#patternLock", {
-  onDraw: (pattern) => {
-    if (pattern === "147") {
+// ===== ПРОСТОЙ ГРАФИЧЕСКИЙ КЛЮЧ БЕЗ БИБЛИОТЕК =====
+
+const lockEl = document.getElementById("patternLock");
+if (lockEl) {
+  const CORRECT_PATTERN = "147"; // 1->4->7
+  let pattern = [];
+  let isDrawing = false;
+
+  // гарантируем размер, даже если CSS сломают
+  lockEl.style.width = lockEl.style.width || "300px";
+  lockEl.style.height = lockEl.style.height || "300px";
+
+  lockEl.innerHTML = "";
+  lockEl.style.display = "grid";
+  lockEl.style.gridTemplateColumns = "repeat(3, 1fr)";
+  lockEl.style.gridTemplateRows = "repeat(3, 1fr)";
+  lockEl.style.gap = "20px";
+  lockEl.style.position = "relative";
+
+  const dots = [];
+
+  for (let i = 0; i < 9; i++) {
+    const dot = document.createElement("div");
+    dot.dataset.index = i;
+    dot.style.width = "100%";
+    dot.style.height = "100%";
+    dot.style.borderRadius = "50%";
+    dot.style.background = "#222";
+    dot.style.border = "2px solid #500";
+    dot.style.touchAction = "none";
+
+    dot.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      isDrawing = true;
+      pattern = [];
+      dots.forEach(d => (d.style.background = "#222"));
+      addDot(dot);
+    });
+
+    dot.addEventListener("pointerenter", () => {
+      if (isDrawing) addDot(dot);
+    });
+
+    dots.push(dot);
+    lockEl.appendChild(dot);
+  }
+
+  document.addEventListener("pointerup", () => {
+    if (!isDrawing) return;
+    isDrawing = false;
+
+    if (pattern.join("") === CORRECT_PATTERN) {
       openCamera();
     } else {
       showDevil();
     }
+
+    pattern = [];
+  });
+
+  function addDot(dot) {
+    const index = dot.dataset.index;
+    if (pattern.includes(index)) return;
+    pattern.push(index);
+    dot.style.background = "#ff4444";
   }
-});
+}
 });
