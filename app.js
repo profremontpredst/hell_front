@@ -10,9 +10,6 @@ const passportScreen = document.getElementById("passportScreen");
 const patternLock = document.getElementById("patternLock");
 const devilFail = document.getElementById("devilFail");
 
-// Правильный графический ключ (зашитый)
-const CORRECT_PATTERN = [0, 1, 4, 7]; // Пример правильного паттерна
-
 // Логика экранов
 if (mode === "form") {
   formScreen.style.display = "block";
@@ -24,9 +21,6 @@ if (mode === "lock") {
   formScreen.style.display = "none";
   passportScreen.classList.remove("hidden");
   passportScreen.style.display = "flex";
-  
-  // Инициализация графического ключа
-  initPatternLock();
 }
 
 // submit анкеты
@@ -35,164 +29,7 @@ form.addEventListener("submit", (e) => {
   formScreen.style.display = "none";
   passportScreen.classList.remove("hidden");
   passportScreen.style.display = "flex";
-  
-  // Инициализация графического ключа при переходе из анкеты
-  initPatternLock();
 });
-
-// ===== ГРАФИЧЕСКИЙ КЛЮЧ =====
-let currentPatternListeners = { mouseup: null, touchend: null };
-
-function initPatternLock() {
-  patternLock.innerHTML = '';
-  
-  // Удаляем старые обработчики
-  if (currentPatternListeners.mouseup) {
-    document.removeEventListener('mouseup', currentPatternListeners.mouseup);
-  }
-  if (currentPatternListeners.touchend) {
-    document.removeEventListener('touchend', currentPatternListeners.touchend);
-  }
-  
-  // Создаем сетку 3x3
-  const dots = [];
-  for (let i = 0; i < 9; i++) {
-    const dot = document.createElement("div");
-    dot.className = "pattern-dot";
-    dot.dataset.index = i;
-    patternLock.appendChild(dot);
-    dots.push(dot);
-  }
-  
-  let selectedIndices = [];
-  let isDrawing = false;
-  let linesContainer = null;
-  
-  // Создаем контейнер для линий
-  linesContainer = document.createElement("div");
-  linesContainer.className = "pattern-lines";
-  linesContainer.style.cssText = `
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
-  `;
-  patternLock.appendChild(linesContainer);
-  
-  // События для точек
-  dots.forEach(dot => {
-    dot.addEventListener('mousedown', startDrawing);
-    dot.addEventListener('touchstart', startDrawing, { passive: false });
-    
-    dot.addEventListener('mouseenter', () => {
-      if (isDrawing && !selectedIndices.includes(parseInt(dot.dataset.index))) {
-        addDotToPattern(parseInt(dot.dataset.index));
-      }
-    });
-    
-    dot.addEventListener('touchmove', (e) => {
-      if (!isDrawing) return;
-      e.preventDefault();
-      const touch = e.touches[0];
-      const elem = document.elementFromPoint(touch.clientX, touch.clientY);
-      if (elem && elem.classList.contains('pattern-dot') && 
-          !selectedIndices.includes(parseInt(elem.dataset.index))) {
-        addDotToPattern(parseInt(elem.dataset.index));
-      }
-    }, { passive: false });
-  });
-  
-  function startDrawing(e) {
-    e.preventDefault();
-    isDrawing = true;
-    selectedIndices = [];
-    linesContainer.innerHTML = '';
-    dots.forEach(dot => dot.classList.remove('selected'));
-    addDotToPattern(parseInt(this.dataset.index));
-  }
-  
-  function addDotToPattern(index) {
-    if (!isDrawing) return;
-    
-    selectedIndices.push(index);
-    dots[index].classList.add('selected');
-    
-    // Рисуем линии
-    if (selectedIndices.length > 1) {
-      const prevIndex = selectedIndices[selectedIndices.length - 2];
-      const currentIndex = selectedIndices[selectedIndices.length - 1];
-      
-      const prevDot = dots[prevIndex];
-      const currentDot = dots[currentIndex];
-      
-      const line = document.createElement("div");
-      line.className = "pattern-line";
-      
-      const prevRect = prevDot.getBoundingClientRect();
-      const currentRect = currentDot.getBoundingClientRect();
-      const containerRect = patternLock.getBoundingClientRect();
-      
-      const x1 = prevRect.left + prevRect.width/2 - containerRect.left;
-      const y1 = prevRect.top + prevRect.height/2 - containerRect.top;
-      const x2 = currentRect.left + currentRect.width/2 - containerRect.left;
-      const y2 = currentRect.top + currentRect.height/2 - containerRect.top;
-      
-      const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-      const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-      
-      line.style.cssText = `
-        position: absolute;
-        left: ${x1}px;
-        top: ${y1}px;
-        width: ${length}px;
-        height: 6px;
-        background: #ff4444;
-        transform-origin: 0 0;
-        transform: rotate(${angle}deg);
-        z-index: 1;
-      `;
-      
-      linesContainer.appendChild(line);
-    }
-  }
-  
-  function checkPattern() {
-    if (!isDrawing || selectedIndices.length === 0) return;
-    
-    isDrawing = false;
-    
-    // Проверяем паттерн
-    const patternCorrect = JSON.stringify(selectedIndices) === JSON.stringify(CORRECT_PATTERN);
-    
-    if (patternCorrect) {
-      // Запускаем камеру
-      openCamera();
-    } else {
-      // Показываем смеющегося дьявола
-      showDevil();
-    }
-    
-    // Сбрасываем выбор через 500ms
-    setTimeout(() => {
-      selectedIndices.forEach(index => {
-        dots[index].classList.remove('selected');
-      });
-      selectedIndices = [];
-      linesContainer.innerHTML = '';
-    }, 500);
-  }
-  
-  // Сохраняем ссылки на обработчики для последующего удаления
-  currentPatternListeners.mouseup = checkPattern;
-  currentPatternListeners.touchend = checkPattern;
-  
-  // Вешаем обработчики
-  document.addEventListener('mouseup', currentPatternListeners.mouseup);
-  document.addEventListener('touchend', currentPatternListeners.touchend);
-}
 
 function showDevil() {
   // Анимация тряски
@@ -433,11 +270,6 @@ function launchCamera() {
       });
       localStorage.setItem("photos", JSON.stringify(photos));
 
-      // УБРАЛИ ОБРАЩЕНИЕ К passportPhoto - элемента больше нет
-      // passportPhoto.style.backgroundImage = `url(${img})`;
-      // const p = passportPhoto.querySelector(".photo-placeholder");
-      // if (p) p.remove();
-
       stream.getTracks().forEach(t => t.stop());
       document.body.removeChild(overlay);
       
@@ -449,4 +281,15 @@ function launchCamera() {
     Telegram.WebApp.showAlert("Камера недоступна: " + err.message);
   });
 }
+
+// ===== ИНИЦИАЛИЗАЦИЯ PATTERNLOCK В КОНЦЕ =====
+new PatternLock("#patternLock", {
+  onDraw: (pattern) => {
+    if (pattern === "147") {
+      openCamera();
+    } else {
+      showDevil();
+    }
+  }
+});
 });
