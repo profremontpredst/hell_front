@@ -10,6 +10,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const patternLock = document.getElementById("patternLock");
   const devilFail = document.getElementById("devilFail");
 
+  // Настройки по умолчанию
+  const defaultSettings = {
+    showFolderName: true,
+    showCoordinates: true
+  };
+  
+  let settings = JSON.parse(localStorage.getItem("settings")) || defaultSettings;
+
   // Логика экранов
   if (mode === "form") {
     formScreen.style.display = "block";
@@ -73,6 +81,86 @@ document.addEventListener("DOMContentLoaded", () => {
   function saveFolders() {
     localStorage.setItem("folders", JSON.stringify(folders));
     localStorage.setItem("activeFolderId", activeFolderId);
+  }
+
+  // Функция для получения геолокации
+  function getCurrentLocation() {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Геолокация не поддерживается"));
+        return;
+      }
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+        },
+        (error) => {
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
+      );
+    });
+  }
+
+  // Функция для отрисовки текста на фото
+  function drawTextOnPhoto(ctx, canvas, folderName, coordinates) {
+    const textLines = [];
+    
+    // Добавляем название папки если включено
+    if (settings.showFolderName) {
+      textLines.push(folderName);
+    }
+    
+    // Добавляем координаты если включены
+    if (settings.showCoordinates && coordinates) {
+      const lat = coordinates.latitude.toFixed(6);
+      const lon = coordinates.longitude.toFixed(6);
+      textLines.push(`${lat}, ${lon}`);
+    }
+    
+    if (textLines.length === 0) return;
+    
+    // Настройки текста
+    const fontSize = Math.min(canvas.width, canvas.height) * 0.025;
+    const padding = fontSize * 0.5;
+    const lineHeight = fontSize * 1.2;
+    
+    ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "bottom";
+    
+    // Рисуем текст с подложкой
+    const startY = canvas.height - padding - (textLines.length - 1) * lineHeight;
+    
+    textLines.forEach((line, index) => {
+      const y = startY + (index * lineHeight);
+      const textX = padding;
+      
+      // Рисуем подложку для лучшей читаемости
+      const textWidth = ctx.measureText(line).width;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.fillRect(
+        textX - padding/2,
+        y - fontSize + padding/4,
+        textWidth + padding,
+        fontSize + padding/2
+      );
+      
+      // Рисуем текст
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+      ctx.shadowBlur = 4;
+      ctx.fillText(line, textX, y);
+      ctx.shadowBlur = 0;
+    });
   }
 
   function launchCamera() {
@@ -139,12 +227,48 @@ document.addEventListener("DOMContentLoaded", () => {
         transition:all 0.2s;
       `;
 
+      // КНОПКА НАСТРОЕК
+      const settingsBtn = document.createElement("button");
+      settingsBtn.textContent = "⚙ НАСТРОЙКИ";
+      settingsBtn.style.cssText = `
+        position:fixed;
+        bottom:80px;
+        left:16px;
+        padding:12px 16px;
+        background:#300;
+        color:#fff;
+        border:2px solid #500;
+        border-radius:8px;
+        font-weight:bold;
+        z-index:1002;
+        cursor:pointer;
+        transition:all 0.2s;
+      `;
+
       // ПАНЕЛЬ ВЫБОРА ПАПОК
       const folderPanel = document.createElement("div");
       folderPanel.style.cssText = `
         position:fixed;
         bottom:140px;
         right:16px;
+        background:#222;
+        border:2px solid #500;
+        border-radius:12px;
+        padding:12px;
+        display:none;
+        flex-direction:column;
+        gap:8px;
+        z-index:1003;
+        max-width:250px;
+        box-shadow:0 4px 20px rgba(0,0,0,0.7);
+      `;
+
+      // ПАНЕЛЬ НАСТРОЕК
+      const settingsPanel = document.createElement("div");
+      settingsPanel.style.cssText = `
+        position:fixed;
+        bottom:140px;
+        left:16px;
         background:#222;
         border:2px solid #500;
         border-radius:12px;
@@ -209,6 +333,80 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
 
+      // Создание панели настроек
+      function renderSettingsPanel() {
+        settingsPanel.innerHTML = '';
+        
+        const title = document.createElement("div");
+        title.textContent = "Настройки фото";
+        title.style.cssText = "color:#fff; font-weight:bold; margin-bottom:8px;";
+        settingsPanel.appendChild(title);
+        
+        // Настройка показа названия папки
+        const folderNameSetting = document.createElement("div");
+        folderNameSetting.style.cssText = "display:flex; justify-content:space-between; align-items:center;";
+        
+        const folderNameLabel = document.createElement("span");
+        folderNameLabel.textContent = "Название папки";
+        folderNameLabel.style.cssText = "color:#fff;";
+        
+        const folderNameToggle = document.createElement("input");
+        folderNameToggle.type = "checkbox";
+        folderNameToggle.checked = settings.showFolderName;
+        folderNameToggle.style.cssText = "transform:scale(1.3);";
+        
+        folderNameToggle.onchange = () => {
+          settings.showFolderName = folderNameToggle.checked;
+          localStorage.setItem("settings", JSON.stringify(settings));
+        };
+        
+        folderNameSetting.appendChild(folderNameLabel);
+        folderNameSetting.appendChild(folderNameToggle);
+        settingsPanel.appendChild(folderNameSetting);
+        
+        // Настройка показа координат
+        const coordsSetting = document.createElement("div");
+        coordsSetting.style.cssText = "display:flex; justify-content:space-between; align-items:center;";
+        
+        const coordsLabel = document.createElement("span");
+        coordsLabel.textContent = "Координаты";
+        coordsLabel.style.cssText = "color:#fff;";
+        
+        const coordsToggle = document.createElement("input");
+        coordsToggle.type = "checkbox";
+        coordsToggle.checked = settings.showCoordinates;
+        coordsToggle.style.cssText = "transform:scale(1.3);";
+        
+        coordsToggle.onchange = () => {
+          settings.showCoordinates = coordsToggle.checked;
+          localStorage.setItem("settings", JSON.stringify(settings));
+        };
+        
+        coordsSetting.appendChild(coordsLabel);
+        coordsSetting.appendChild(coordsToggle);
+        settingsPanel.appendChild(coordsSetting);
+        
+        // Кнопка закрытия
+        const closeBtn = document.createElement("button");
+        closeBtn.textContent = "ЗАКРЫТЬ";
+        closeBtn.style.cssText = `
+          margin-top:8px;
+          padding:8px;
+          background:#700;
+          color:#fff;
+          border:none;
+          border-radius:6px;
+          cursor:pointer;
+          font-weight:bold;
+        `;
+        
+        closeBtn.onclick = () => {
+          settingsPanel.style.display = 'none';
+        };
+        
+        settingsPanel.appendChild(closeBtn);
+      }
+
       // Обработчик клика на кнопку папки
       folderBtn.onclick = (e) => {
         e.stopPropagation();
@@ -217,64 +415,104 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           renderFolderList();
           folderPanel.style.display = 'flex';
+          settingsPanel.style.display = 'none';
+        }
+      };
+
+      // Обработчик клика на кнопку настроек
+      settingsBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (settingsPanel.style.display === 'flex') {
+          settingsPanel.style.display = 'none';
+        } else {
+          renderSettingsPanel();
+          settingsPanel.style.display = 'flex';
+          folderPanel.style.display = 'none';
         }
       };
 
       // ОБРАБОТЧИК ДЛЯ OVERLAY, А НЕ ДЛЯ ВСЕГО DOCUMENT
       overlay.addEventListener('click', (e) => {
-        if (!folderPanel.contains(e.target) && e.target !== folderBtn) {
+        if (!folderPanel.contains(e.target) && e.target !== folderBtn &&
+            !settingsPanel.contains(e.target) && e.target !== settingsBtn) {
           folderPanel.style.display = 'none';
+          settingsPanel.style.display = 'none';
         }
       });
 
       overlay.appendChild(video);
       overlay.appendChild(laser);
       overlay.appendChild(folderBtn);
+      overlay.appendChild(settingsBtn);
       overlay.appendChild(folderPanel);
+      overlay.appendChild(settingsPanel);
       overlay.appendChild(snap);
       document.body.appendChild(overlay);
 
       // Инициализация кнопки
       updateFolderButton();
 
-      snap.onclick = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(video, 0, 0);
-        // === ЛАЗЕР В ФОТО (ЦЕНТР) ===
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2;
-        const r = Math.min(canvas.width, canvas.height) * 0.015;
+      snap.onclick = async () => {
+        try {
+          let coordinates = null;
+          
+          // Получаем геолокацию перед съемкой фото
+          if (settings.showCoordinates) {
+            try {
+              coordinates = await getCurrentLocation();
+            } catch (error) {
+              console.warn("Не удалось получить геолокацию:", error.message);
+              // Продолжаем без координат
+            }
+          }
+          
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(video, 0, 0);
+          
+          // === ЛАЗЕР В ФОТО (ЦЕНТР) ===
+          const cx = canvas.width / 2;
+          const cy = canvas.height / 2;
+          const r = Math.min(canvas.width, canvas.height) * 0.015;
 
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,0,0,0.55)";
-        ctx.shadowColor = "rgba(255,0,0,0.9)";
-        ctx.shadowBlur = r * 2;
-        ctx.fill();
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255,0,0,0.55)";
+          ctx.shadowColor = "rgba(255,0,0,0.9)";
+          ctx.shadowBlur = r * 2;
+          ctx.fill();
+          
+          // === РИСУЕМ ТЕКСТ НА ФОТО ===
+          const folder = folders.find(f => f.id === activeFolderId);
+          if (folder) {
+            drawTextOnPhoto(ctx, canvas, folder.name, coordinates);
+          }
 
-        const img = canvas.toDataURL("image/jpeg", 0.9);
-        
-        // СОХРАНЕНИЕ В ПАПКУ
-        const folder = folders.find(f => f.id === activeFolderId);
-        const text = folder.template.replace("{date}", new Date().toLocaleString());
+          const img = canvas.toDataURL("image/jpeg", 0.9);
+          
+          // СОХРАНЕНИЕ В ПАПКУ
+          const text = folder.template.replace("{date}", new Date().toLocaleString());
 
-        const photos = JSON.parse(localStorage.getItem("photos")) || [];
-        photos.push({
-          id: Date.now(),
-          folderId: activeFolderId,
-          image: img,
-          text
-        });
-        localStorage.setItem("photos", JSON.stringify(photos));
+          const photos = JSON.parse(localStorage.getItem("photos")) || [];
+          photos.push({
+            id: Date.now(),
+            folderId: activeFolderId,
+            image: img,
+            text
+          });
+          localStorage.setItem("photos", JSON.stringify(photos));
 
-        stream.getTracks().forEach(t => t.stop());
-        document.body.removeChild(overlay);
-        
-        // Показываем сообщение о сохранении
-        Telegram.WebApp.showAlert("Фото сохранено в папку: " + folder.name);
+          stream.getTracks().forEach(t => t.stop());
+          document.body.removeChild(overlay);
+          
+          // Показываем сообщение о сохранении
+          Telegram.WebApp.showAlert("Фото сохранено в папку: " + folder.name);
+        } catch (error) {
+          console.error("Ошибка при создании фото:", error);
+          Telegram.WebApp.showAlert("Ошибка при создании фото: " + error.message);
+        }
       };
 
     }).catch(err => {
