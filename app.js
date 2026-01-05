@@ -83,33 +83,6 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("activeFolderId", activeFolderId);
   }
 
-  // Функция для получения геолокации
-  function getCurrentLocation() {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error("Геолокация не поддерживается"));
-        return;
-      }
-      
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-        },
-        (error) => {
-          reject(error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0
-        }
-      );
-    });
-  }
-
   // Функция для отрисовки текста на фото
   function drawTextOnPhoto(ctx, canvas, folderName, coordinates) {
     const textLines = [];
@@ -169,6 +142,10 @@ document.addEventListener("DOMContentLoaded", () => {
       audio: false
     });
 
+    // Переменные для геолокации
+    let liveCoordinates = null;
+    let geolocationWatchId = null;
+    
     // оверлей
     const overlay = document.createElement("div");
     overlay.style.cssText = `
@@ -181,9 +158,81 @@ document.addEventListener("DOMContentLoaded", () => {
     video.playsInline = true;
     video.style.cssText = "flex:1; object-fit:cover;";
 
+    // Элемент для отображения координат поверх видео
+    const coordsOverlay = document.createElement("div");
+    coordsOverlay.style.cssText = `
+      position:fixed;
+      bottom:20px;
+      left:0;
+      right:0;
+      text-align:center;
+      color:#fff;
+      font-family:Arial, sans-serif;
+      font-size:14px;
+      font-weight:bold;
+      text-shadow:0 0 5px #000, 0 0 10px #000;
+      z-index:1001;
+      pointer-events:none;
+      padding:8px;
+      background:rgba(0,0,0,0.4);
+      display:none;
+    `;
+
+    // Функция обновления координат на overlay
+    function updateCoordsOverlay() {
+      if (settings.showCoordinates && liveCoordinates) {
+        const lat = liveCoordinates.latitude.toFixed(6);
+        const lon = liveCoordinates.longitude.toFixed(6);
+        coordsOverlay.textContent = `${lat}, ${lon}`;
+        coordsOverlay.style.display = 'block';
+      } else {
+        coordsOverlay.style.display = 'none';
+      }
+    }
+
+    // Запускаем слежение за геолокацией
+    function startGeolocationTracking() {
+      if (!navigator.geolocation) {
+        console.warn("Геолокация не поддерживается");
+        return;
+      }
+      
+      geolocationWatchId = navigator.geolocation.watchPosition(
+        (position) => {
+          liveCoordinates = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          };
+          updateCoordsOverlay();
+        },
+        (error) => {
+          console.warn("Ошибка геолокации:", error.message);
+          coordsOverlay.textContent = "Геолокация недоступна";
+          coordsOverlay.style.display = 'block';
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 1000,
+          timeout: 5000
+        }
+      );
+    }
+
+    // Останавливаем слежение за геолокацией
+    function stopGeolocationTracking() {
+      if (geolocationWatchId !== null) {
+        navigator.geolocation.clearWatch(geolocationWatchId);
+        geolocationWatchId = null;
+      }
+      liveCoordinates = null;
+    }
+
     // ЖДЕМ ЗАГРУЗКИ КАМЕРЫ
     streamPromise.then(stream => {
       video.srcObject = stream;
+
+      // Запускаем слежение за геолокацией
+      startGeolocationTracking();
 
       const snap = document.createElement("button");
       snap.textContent = "СДЕЛАТЬ СНИМОК";
@@ -380,6 +429,7 @@ document.addEventListener("DOMContentLoaded", () => {
         coordsToggle.onchange = () => {
           settings.showCoordinates = coordsToggle.checked;
           localStorage.setItem("settings", JSON.stringify(settings));
+          updateCoordsOverlay();
         };
         
         coordsSetting.appendChild(coordsLabel);
@@ -440,8 +490,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
+      // Обработчик закрытия камеры
+      function closeCamera() {
+        stopGeolocationTracking();
+        stream.getTracks().forEach(t => t.stop());
+        if (overlay.parentNode === document.body) {
+          document.body.removeChild(overlay);
+        }
+      }
+
       overlay.appendChild(video);
       overlay.appendChild(laser);
+      overlay.appendChild(coordsOverlay);
       overlay.appendChild(folderBtn);
       overlay.appendChild(settingsBtn);
       overlay.appendChild(folderPanel);
@@ -452,20 +512,8 @@ document.addEventListener("DOMContentLoaded", () => {
       // Инициализация кнопки
       updateFolderButton();
 
-      snap.onclick = async () => {
+      snap.onclick = () => {
         try {
-          let coordinates = null;
-          
-          // Получаем геолокацию перед съемкой фото
-          if (settings.showCoordinates) {
-            try {
-              coordinates = await getCurrentLocation();
-            } catch (error) {
-              console.warn("Не удалось получить геолокацию:", error.message);
-              // Продолжаем без координат
-            }
-          }
-          
           const canvas = document.createElement("canvas");
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
@@ -487,7 +535,8 @@ document.addEventListener("DOMContentLoaded", () => {
           // === РИСУЕМ ТЕКСТ НА ФОТО ===
           const folder = folders.find(f => f.id === activeFolderId);
           if (folder) {
-            drawTextOnPhoto(ctx, canvas, folder.name, coordinates);
+            // Используем текущие координаты из liveCoordinates
+            drawTextOnPhoto(ctx, canvas, folder.name, liveCoordinates);
           }
 
           const img = canvas.toDataURL("image/jpeg", 0.9);
@@ -504,8 +553,7 @@ document.addEventListener("DOMContentLoaded", () => {
           });
           localStorage.setItem("photos", JSON.stringify(photos));
 
-          stream.getTracks().forEach(t => t.stop());
-          document.body.removeChild(overlay);
+          closeCamera();
           
           // Показываем сообщение о сохранении
           Telegram.WebApp.showAlert("Фото сохранено в папку: " + folder.name);
