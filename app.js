@@ -10,6 +10,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const patternLock = document.getElementById("patternLock");
   const devilFail = document.getElementById("devilFail");
 
+  // ===== ЭКРАН ПАПОК (ПРОСМОТР) =====
+  const foldersScreen = document.getElementById("foldersScreen");
+  const foldersBack = document.getElementById("foldersBack");
+  const deleteAllBtn = document.getElementById("deleteAllBtn");
+  const foldersListEl = document.getElementById("foldersList");
+  const photosGridEl = document.getElementById("photosGrid");
+  const foldersBreadcrumbEl = document.getElementById("foldersBreadcrumb");
+  const foldersEmptyEl = document.getElementById("foldersEmpty");
+
   // Настройки по умолчанию
   const defaultSettings = {
     showFolderName: true,
@@ -81,6 +90,121 @@ document.addEventListener("DOMContentLoaded", () => {
   function saveFolders() {
     localStorage.setItem("folders", JSON.stringify(folders));
     localStorage.setItem("activeFolderId", activeFolderId);
+  }
+
+  // ===== UI ЭКРАНА ПАПОК (ПРОСМОТР) =====
+  function showFoldersScreen() {
+    if (!foldersScreen) return;
+    foldersScreen.classList.remove("hidden");
+    foldersScreen.setAttribute("aria-hidden", "false");
+  }
+
+  function hideFoldersScreen() {
+    if (!foldersScreen) return;
+    foldersScreen.classList.add("hidden");
+    foldersScreen.setAttribute("aria-hidden", "true");
+  }
+
+  function getAllPhotos() {
+    return JSON.parse(localStorage.getItem("photos")) || [];
+  }
+
+  function setEmptyState(isEmpty) {
+    if (!foldersEmptyEl || !foldersListEl || !photosGridEl || !foldersBreadcrumbEl) return;
+
+    foldersEmptyEl.style.display = isEmpty ? "block" : "none";
+    foldersListEl.style.display = isEmpty ? "none" : "flex";
+    photosGridEl.style.display = "none";
+    foldersBreadcrumbEl.style.display = "none";
+  }
+
+  // ВАЖНО: имя функции НЕ КОНФЛИКТУЕТ с твоей renderFolderList() для выбора папки.
+  // Поэтому тут используем отдельное имя:
+  function renderFoldersBrowseList() {
+    if (!foldersListEl) return;
+
+    const photos = getAllPhotos();
+    foldersListEl.innerHTML = "";
+
+    // если вообще нет фото — показываем пусто
+    if (!photos.length) {
+      setEmptyState(true);
+      return;
+    }
+
+    setEmptyState(false);
+
+    folders.forEach(folder => {
+      const count = photos.filter(p => p.folderId === folder.id).length;
+
+      const item = document.createElement("div");
+      item.className = "folder-item";
+      item.textContent = `${folder.name} (${count})`;
+      item.onclick = () => openBrowseFolder(folder.id);
+
+      foldersListEl.appendChild(item);
+    });
+  }
+
+  function openBrowseFolder(folderId) {
+    const folder = folders.find(f => f.id === folderId);
+    const photos = getAllPhotos().filter(p => p.folderId === folderId);
+
+    if (!photosGridEl || !foldersBreadcrumbEl || !foldersListEl || !foldersEmptyEl) return;
+
+    foldersEmptyEl.style.display = photos.length ? "none" : "block";
+    foldersListEl.style.display = "none";
+    photosGridEl.style.display = "grid";
+    foldersBreadcrumbEl.style.display = "block";
+
+    foldersBreadcrumbEl.textContent = folder ? folder.name : "Папка";
+
+    photosGridEl.innerHTML = "";
+    photos.forEach(p => {
+      const cell = document.createElement("div");
+      cell.className = "photo-item";
+
+      const img = document.createElement("img");
+      img.src = p.image;
+
+      cell.appendChild(img);
+      photosGridEl.appendChild(cell);
+    });
+  }
+
+  function backToBrowseFoldersList() {
+    if (!photosGridEl || !foldersBreadcrumbEl || !foldersListEl) return;
+
+    photosGridEl.style.display = "none";
+    foldersBreadcrumbEl.style.display = "none";
+    foldersListEl.style.display = "flex";
+    renderFoldersBrowseList();
+  }
+
+  function deleteAllPhotos() {
+    localStorage.removeItem("photos");
+    renderFoldersBrowseList();
+    backToBrowseFoldersList();
+  }
+
+  // кнопки экрана папок (вешаем 1 раз)
+  if (foldersBack) {
+    foldersBack.onclick = () => {
+      // если мы внутри папки — возвращаемся к списку
+      if (photosGridEl && photosGridEl.style.display === "grid") {
+        backToBrowseFoldersList();
+        return;
+      }
+      // если на списке — просто закрываем экран папок
+      hideFoldersScreen();
+    };
+  }
+
+  if (deleteAllBtn) {
+    deleteAllBtn.onclick = () => {
+      deleteAllPhotos();
+      Telegram.WebApp.showAlert("Все фото удалены");
+    };
   }
 
   // Функция для отрисовки текста на фото
@@ -444,6 +568,31 @@ document.addEventListener("DOMContentLoaded", () => {
         coordsSetting.appendChild(coordsLabel);
         coordsSetting.appendChild(coordsToggle);
         settingsPanel.appendChild(coordsSetting);
+        
+        // ===== КНОПКА "ПАПКИ" (ПРОСМОТР ФОТО) =====
+        const openFoldersBtn = document.createElement("button");
+        openFoldersBtn.textContent = "ПАПКИ";
+        openFoldersBtn.style.cssText = `
+          margin-top:8px;
+          padding:10px;
+          background:#300;
+          color:#fff;
+          border:2px solid #500;
+          border-radius:6px;
+          cursor:pointer;
+          font-weight:bold;
+        `;
+
+        openFoldersBtn.onclick = () => {
+          // закрываем настройки
+          settingsPanel.style.display = "none";
+
+          // открываем экран папок (просмотр)
+          renderFoldersBrowseList();
+          showFoldersScreen();
+        };
+
+        settingsPanel.appendChild(openFoldersBtn);
         
         // Кнопка закрытия
         const closeBtn = document.createElement("button");
