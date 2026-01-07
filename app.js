@@ -162,7 +162,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const coordsOverlay = document.createElement("div");
     coordsOverlay.style.cssText = `
       position:fixed;
-      bottom:20px;
       left:0;
       right:0;
       text-align:center;
@@ -185,6 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const lon = liveCoordinates.longitude.toFixed(6);
         coordsOverlay.textContent = `${lat}, ${lon}`;
         coordsOverlay.style.display = 'block';
+        updateCoordsPosition();
       } else {
         coordsOverlay.style.display = 'none';
       }
@@ -209,6 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
           console.warn("Ошибка геолокации:", error.message);
           coordsOverlay.textContent = "Геолокация недоступна";
           coordsOverlay.style.display = 'block';
+          updateCoordsPosition();
         },
         {
           enableHighAccuracy: true,
@@ -241,6 +242,14 @@ document.addEventListener("DOMContentLoaded", () => {
         background:linear-gradient(180deg,#700,#400);
         font-weight:bold; letter-spacing:.15em;
       `;
+
+      function updateCoordsPosition() {
+        const r = snap.getBoundingClientRect();
+        coordsOverlay.style.bottom = `${window.innerHeight - r.top + 12 + coordsOverlay.offsetHeight}px`;
+      }
+
+      setTimeout(updateCoordsPosition, 0);
+      window.addEventListener("resize", updateCoordsPosition);
 
       // лазер (виден пользователю при наведении)
       const laser = document.createElement("div");
