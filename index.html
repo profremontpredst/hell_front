@@ -96,8 +96,37 @@
     </div>
   </div>
 
+  <!-- НОВЫЙ СКРЫТЫЙ ЭКРАН: ПАПКИ / ФОТО -->
+  <!-- ВАЖНО: ЭТОТ ЭКРАН ПОКА НЕ ПОКАЗЫВАЕМ САМ. ОТКРОЕТСЯ ИЗ НАСТРОЕК КАМЕРЫ (ПОЗЖЕ В app.js). -->
+  <div class="folders-screen hidden" id="foldersScreen" aria-hidden="true">
+
+    <div class="folders-topbar">
+      <button class="folders-back" id="foldersBack" type="button">← Назад</button>
+      <div class="folders-title">Папки</div>
+      <button class="folders-clear" id="deleteAllBtn" type="button">Очистить</button>
+    </div>
+
+    <div class="folders-body">
+      <!-- список папок -->
+      <div class="folders-list" id="foldersList"></div>
+
+      <!-- заголовок/хлебные крошки -->
+      <div class="folders-breadcrumb" id="foldersBreadcrumb" style="display:none;"></div>
+
+      <!-- сетка фото -->
+      <div class="photos-grid" id="photosGrid" style="display:none;"></div>
+
+      <!-- пусто -->
+      <div class="folders-empty" id="foldersEmpty" style="display:none;">
+        Тут пока пусто.
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
+<!-- ПОКА ТОЛЬКО app.js. Новые файлы (storage.js / photoProcessor.js) подключим позже, когда их создадим. -->
 <script src="app.js"></script>
 </body>
 </html>
