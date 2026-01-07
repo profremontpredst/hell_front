@@ -198,3 +198,106 @@ button {
     padding: 15px;
   }
 }
+/* ============================= */
+/* ===== ЭКРАН ПАПОК/ФОТО ===== */
+/* ============================= */
+
+.folders-screen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, #050000, #000);
+  color: #eee;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+}
+
+/* верхняя панель */
+.folders-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: rgba(20, 0, 0, 0.95);
+  border-bottom: 1px solid #400;
+}
+
+.folders-title {
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.folders-topbar button {
+  background: none;
+  border: none;
+  color: #ff6666;
+  font-size: 13px;
+  padding: 6px 8px;
+}
+
+/* тело */
+.folders-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+/* список папок */
+.folders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.folder-item {
+  padding: 14px;
+  background: #120000;
+  border: 1px solid #500;
+  font-size: 14px;
+}
+
+/* хлебные крошки */
+.folders-breadcrumb {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-bottom: 10px;
+}
+
+/* сетка фото */
+.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.photo-item {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: #111;
+  border: 1px solid #400;
+  overflow: hidden;
+}
+
+.photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* пусто */
+.folders-empty {
+  text-align: center;
+  opacity: 0.5;
+  font-size: 13px;
+  margin-top: 40px;
+}
+
+/* мобилка */
+@media (max-width: 768px) {
+  .photos-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
