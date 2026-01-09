@@ -820,6 +820,53 @@ laser.style.display = settings.photoMode === "dot" ? "block" : "none";
           drawState.active = true;
           return;
         }
+        // === КНОПКА СОХРАНЕНИЯ ПОСЛЕ РИСОВАНИЯ ===
+const saveBtn = document.createElement("button");
+saveBtn.textContent = "💾 Сохранить";
+saveBtn.style.cssText = `
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1003;
+  padding: 14px 24px;
+  font-size: 18px;
+  background: #ff0000;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+`;
+overlay.appendChild(saveBtn);
+
+saveBtn.onclick = () => {
+  const final = document.createElement("canvas");
+  final.width = drawState.canvas.width;
+  final.height = drawState.canvas.height;
+
+  const fctx = final.getContext("2d");
+  fctx.drawImage(drawState.canvas, 0, 0);
+
+  const folder = folders.find(f => f.id === activeFolderId);
+  if (folder) {
+    drawTextOnPhoto(fctx, final, folder.name, liveCoordinates, settings);
+  }
+
+  const img = final.toDataURL("image/jpeg", 0.9);
+  const text = folder.template.replace("{date}", new Date().toLocaleString());
+
+  const photos = JSON.parse(localStorage.getItem("photos")) || [];
+  photos.push({
+    id: Date.now(),
+    folderId: activeFolderId,
+    image: img,
+    text
+  });
+  localStorage.setItem("photos", JSON.stringify(photos));
+
+  saveBtn.remove();
+  closeCamera();
+  Telegram.WebApp.showAlert("Фото сохранено в папку: " + folder.name);
+};
 
         const final = document.createElement("canvas");
         final.width = drawState.canvas.width;
