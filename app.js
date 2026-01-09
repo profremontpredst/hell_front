@@ -393,10 +393,8 @@ let settings = { ...defaultSettings, ...storedSettings };
         z-index:1001;
       `;
 
-      // ТОЛЬКО В РЕЖИМЕ "dot" показываем лазер
-      if (settings.photoMode !== "draw") {
-        overlay.appendChild(laser);
-      }
+      overlay.appendChild(laser);
+laser.style.display = settings.photoMode === "dot" ? "block" : "none";
 
       // КНОПКА ПАПКИ
       const folderBtn = document.createElement("button");
@@ -477,6 +475,18 @@ let settings = { ...defaultSettings, ...storedSettings };
           folderBtn.textContent = `📁 ${activeFolder.name}`;
         }
       }
+
+      // Инициализация кнопки
+      updateFolderButton();
+
+      // ===== ЕДИНСТВЕННЫЙ ОБРАБОТЧИК КНОПКИ =====
+      snap.onclick = () => {
+        if (settings.photoMode === "draw") {
+          handleDrawMode();
+        } else {
+          handleDotMode();
+        }
+      };
 
       // Создание списка папок
       function renderFolderList() {
@@ -602,7 +612,8 @@ let settings = { ...defaultSettings, ...storedSettings };
         photoModeSelect.onchange = () => {
           settings.photoMode = photoModeSelect.value;
           localStorage.setItem("settings", JSON.stringify(settings));
-        };
+          laser.style.display = settings.photoMode === "dot" ? "block" : "none";
+        };        
         
         photoModeSetting.appendChild(photoModeLabel);
         photoModeSetting.appendChild(photoModeSelect);
@@ -691,10 +702,18 @@ let settings = { ...defaultSettings, ...storedSettings };
       function closeCamera() {
         stopGeolocationTracking();
         stream.getTracks().forEach(t => t.stop());
+      
+        if (drawState && drawState.canvas && drawState.canvas.parentNode) {
+          drawState.canvas.parentNode.removeChild(drawState.canvas);
+        }
+      
+        drawState = { active:false, base64:null, canvas:null, ctx:null };
+        snap.textContent = "СДЕЛАТЬ СНИМОК";
+      
         if (overlay.parentNode === document.body) {
           document.body.removeChild(overlay);
         }
-      }
+      }      
 
       overlay.appendChild(video);
       overlay.appendChild(coordsOverlay);
@@ -705,230 +724,120 @@ let settings = { ...defaultSettings, ...storedSettings };
       overlay.appendChild(snap);
       document.body.appendChild(overlay);
 
-      // Инициализация кнопки
-      updateFolderButton();
+      // ===== ФУНКЦИЯ DOT (СТАРЫЙ КОД 1 В 1) =====
+      function handleDotMode() {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(video, 0, 0);
 
-      // ===== НОВЫЙ РЕЖИМ "draw" =====
-      if (settings.photoMode === "draw") {
-        let isDrawingMode = false;
-        let photoBase64 = null;
-        let drawCanvas = null;
-        let drawCtx = null;
-        let isDrawing = false;
-        let lastX = 0;
-        let lastY = 0;
+          const cx = canvas.width / 2;
+          const cy = canvas.height / 2;
+          const r = Math.min(canvas.width, canvas.height) * 0.015;
 
-        // Создаем canvas для рисования (скрытый до съемки)
-        drawCanvas = document.createElement("canvas");
-        drawCanvas.style.cssText = `
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          z-index: 1002;
-          display: none;
-          touch-action: none;
-        `;
-        overlay.appendChild(drawCanvas);
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255,0,0,0.55)";
+          ctx.shadowColor = "rgba(255,0,0,0.9)";
+          ctx.shadowBlur = r * 2;
+          ctx.fill();
 
-        // Функция для начала рисования
-        function startDrawing(e) {
-          isDrawing = true;
-          const rect = drawCanvas.getBoundingClientRect();
-          const scaleX = drawCanvas.width / rect.width;
-          const scaleY = drawCanvas.height / rect.height;
-          
-          lastX = (e.clientX - rect.left) * scaleX;
-          lastY = (e.clientY - rect.top) * scaleY;
-        }
-
-        // Функция для рисования
-        function draw(e) {
-          if (!isDrawing) return;
-          
-          const rect = drawCanvas.getBoundingClientRect();
-          const scaleX = drawCanvas.width / rect.width;
-          const scaleY = drawCanvas.height / rect.height;
-          
-          const x = (e.clientX - rect.left) * scaleX;
-          const y = (e.clientY - rect.top) * scaleY;
-          
-          drawCtx.beginPath();
-          drawCtx.moveTo(lastX, lastY);
-          drawCtx.lineTo(x, y);
-          drawCtx.strokeStyle = "#ff0000";
-          drawCtx.lineWidth = 4;
-          drawCtx.lineCap = "round";
-          drawCtx.lineJoin = "round";
-          drawCtx.stroke();
-          
-          lastX = x;
-          lastY = y;
-        }
-
-        // Функция для остановки рисования
-        function stopDrawing() {
-          isDrawing = false;
-        }
-
-        // Настройка событий для canvas
-        drawCanvas.addEventListener("pointerdown", startDrawing);
-        drawCanvas.addEventListener("pointermove", draw);
-        drawCanvas.addEventListener("pointerup", stopDrawing);
-        drawCanvas.addEventListener("pointerout", stopDrawing);
-
-        snap.onclick = () => {
-          if (!isDrawingMode) {
-            // Первый клик: делаем снимок и переходим в режим рисования
-            try {
-              // Фиксируем кадр с видео
-              const tempCanvas = document.createElement("canvas");
-              tempCanvas.width = video.videoWidth;
-              tempCanvas.height = video.videoHeight;
-              const tempCtx = tempCanvas.getContext("2d");
-              tempCtx.drawImage(video, 0, 0);
-              
-              // Сохраняем base64 фото
-              photoBase64 = tempCanvas.toDataURL("image/jpeg", 0.9);
-              
-              // Скрываем видео и кнопки
-              video.style.display = "none";
-              folderBtn.style.display = "none";
-              settingsBtn.style.display = "none";
-              
-              // Настраиваем canvas для рисования
-              drawCanvas.width = video.videoWidth;
-              drawCanvas.height = video.videoHeight;
-              drawCanvas.style.display = "block";
-              
-              // Устанавливаем контекст для рисования
-              drawCtx = drawCanvas.getContext("2d");
-              drawCtx.strokeStyle = "#ff0000";
-              drawCtx.lineWidth = 4;
-              drawCtx.lineCap = "round";
-              drawCtx.lineJoin = "round";
-              
-              // Фон canvas - сделанное фото
-              const img = new Image();
-              img.onload = () => {
-                drawCtx.drawImage(img, 0, 0);
-              };
-              img.src = photoBase64;
-              
-              // Меняем текст кнопки
-              snap.textContent = "СОХРАНИТЬ";
-              
-              // Включаем режим рисования
-              isDrawingMode = true;
-              
-            } catch (error) {
-              console.error("Ошибка при создании фото:", error);
-              Telegram.WebApp.showAlert("Ошибка при создании фото: " + error.message);
-            }
-          } else {
-            // Второй клик: сохраняем результат
-            try {
-              // Создаем финальный canvas с рисунком и текстом
-              const finalCanvas = document.createElement("canvas");
-              finalCanvas.width = drawCanvas.width;
-              finalCanvas.height = drawCanvas.height;
-              const finalCtx = finalCanvas.getContext("2d");
-              
-              // Рисуем исходное фото
-              const img = new Image();
-              img.onload = () => {
-                finalCtx.drawImage(img, 0, 0);
-                
-                // Рисуем рисунок поверх фото
-                finalCtx.drawImage(drawCanvas, 0, 0);
-                
-                // Добавляем текст (как в старом режиме)
-                const folder = folders.find(f => f.id === activeFolderId);
-                if (folder) {
-                  drawTextOnPhoto(finalCtx, finalCanvas, folder.name, liveCoordinates);
-                }
-                
-                // Получаем финальное изображение
-                const finalImg = finalCanvas.toDataURL("image/jpeg", 0.9);
-                
-                // СОХРАНЕНИЕ В ПАПКУ (ТОЧНО КАК В СТАРОМ КОДЕ)
-                const text = folder.template.replace("{date}", new Date().toLocaleString());
-                
-                const photos = JSON.parse(localStorage.getItem("photos")) || [];
-                photos.push({
-                  id: Date.now(),
-                  folderId: activeFolderId,
-                  image: finalImg,
-                  text
-                });
-                localStorage.setItem("photos", JSON.stringify(photos));
-                
-                closeCamera();
-                
-                // Показываем сообщение о сохранении
-                Telegram.WebApp.showAlert("Фото сохранено в папку: " + folder.name);
-              };
-              img.src = photoBase64;
-              
-            } catch (error) {
-              console.error("Ошибка при сохранении фото:", error);
-              Telegram.WebApp.showAlert("Ошибка при сохранении фото: " + error.message);
-            }
+          const folder = folders.find(f => f.id === activeFolderId);
+          if (folder) {
+            drawTextOnPhoto(ctx, canvas, folder.name, liveCoordinates);
           }
-        };
-      } else {
-        // ===== СТАРЫЙ РЕЖИМ "dot" (БЕЗ ИЗМЕНЕНИЙ) =====
-        snap.onclick = () => {
-          try {
-            const canvas = document.createElement("canvas");
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(video, 0, 0);
-            
-            // === ЛАЗЕР В ФОТО (ЦЕНТР) ===
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
-            const r = Math.min(canvas.width, canvas.height) * 0.015;
 
-            ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255,0,0,0.55)";
-            ctx.shadowColor = "rgba(255,0,0,0.9)";
-            ctx.shadowBlur = r * 2;
-            ctx.fill();
-            
-            // === РИСУЕМ ТЕКСТ НА ФОТО ===
-            const folder = folders.find(f => f.id === activeFolderId);
-            if (folder) {
-              // Используем текущие координаты из liveCoordinates
-              drawTextOnPhoto(ctx, canvas, folder.name, liveCoordinates);
-            }
+          const img = canvas.toDataURL("image/jpeg", 0.9);
 
-            const img = canvas.toDataURL("image/jpeg", 0.9);
-            
-            // СОХРАНЕНИЕ В ПАПКУ
-            const text = folder.template.replace("{date}", new Date().toLocaleString());
+          const text = folder.template.replace("{date}", new Date().toLocaleString());
+          const photos = JSON.parse(localStorage.getItem("photos")) || [];
+          photos.push({ id: Date.now(), folderId: activeFolderId, image: img, text });
+          localStorage.setItem("photos", JSON.stringify(photos));
 
-            const photos = JSON.parse(localStorage.getItem("photos")) || [];
-            photos.push({
-              id: Date.now(),
-              folderId: activeFolderId,
-              image: img,
-              text
-            });
-            localStorage.setItem("photos", JSON.stringify(photos));
+          closeCamera();
+          Telegram.WebApp.showAlert("Фото сохранено в папку: " + folder.name);
+        } catch (e) {
+          Telegram.WebApp.showAlert("Ошибка: " + e.message);
+        }
+      }
 
-            closeCamera();
-            
-            // Показываем сообщение о сохранении
-            Telegram.WebApp.showAlert("Фото сохранено в папку: " + folder.name);
-          } catch (error) {
-            console.error("Ошибка при создании фото:", error);
-            Telegram.WebApp.showAlert("Ошибка при создании фото: " + error.message);
-          }
-        };
+      // ===== ФУНКЦИЯ DRAW =====
+      let drawState = {
+        active: false,
+        base64: null,
+        canvas: null,
+        ctx: null
+      };
+
+      function handleDrawMode() {
+        if (!drawState.active) {
+          const base = document.createElement("canvas");
+          base.width = video.videoWidth;
+          base.height = video.videoHeight;
+          base.getContext("2d").drawImage(video, 0, 0);
+          drawState.base64 = base.toDataURL("image/jpeg", 0.9);
+
+          video.style.display = "none";
+
+          drawState.canvas = document.createElement("canvas");
+          drawState.canvas.width = base.width;
+          drawState.canvas.height = base.height;
+          drawState.canvas.style.cssText = "position:fixed;inset:0;z-index:1002;touch-action:none;";
+          overlay.appendChild(drawState.canvas);
+
+          drawState.ctx = drawState.canvas.getContext("2d");
+          drawState.ctx.strokeStyle = "#ff0000";
+          drawState.ctx.lineWidth = 4;
+          drawState.ctx.lineCap = "round";
+
+          const img = new Image();
+          img.onload = () => drawState.ctx.drawImage(img, 0, 0);
+          img.src = drawState.base64;
+
+          let drawing = false, lx = 0, ly = 0;
+          drawState.canvas.onpointerdown = e => {
+            drawing = true;
+            const r = drawState.canvas.getBoundingClientRect();
+            lx = (e.clientX - r.left) * drawState.canvas.width / r.width;
+            ly = (e.clientY - r.top) * drawState.canvas.height / r.height;
+          };
+          drawState.canvas.onpointermove = e => {
+            if (!drawing) return;
+            const r = drawState.canvas.getBoundingClientRect();
+            const x = (e.clientX - r.left) * drawState.canvas.width / r.width;
+            const y = (e.clientY - r.top) * drawState.canvas.height / r.height;
+            drawState.ctx.beginPath();
+            drawState.ctx.moveTo(lx, ly);
+            drawState.ctx.lineTo(x, y);
+            drawState.ctx.stroke();
+            lx = x; ly = y;
+          };
+          drawState.canvas.onpointerup = () => drawing = false;
+
+          snap.textContent = "СОХРАНИТЬ";
+          drawState.active = true;
+          return;
+        }
+
+        const final = document.createElement("canvas");
+        final.width = drawState.canvas.width;
+        final.height = drawState.canvas.height;
+        const fctx = final.getContext("2d");
+        fctx.drawImage(drawState.canvas, 0, 0);
+
+        const folder = folders.find(f => f.id === activeFolderId);
+        if (folder) drawTextOnPhoto(fctx, final, folder.name, liveCoordinates);
+
+        const img = final.toDataURL("image/jpeg", 0.9);
+        const text = folder.template.replace("{date}", new Date().toLocaleString());
+        const photos = JSON.parse(localStorage.getItem("photos")) || [];
+        photos.push({ id: Date.now(), folderId: activeFolderId, image: img, text });
+        localStorage.setItem("photos", JSON.stringify(photos));
+
+        closeCamera();
+        Telegram.WebApp.showAlert("Фото сохранено в папку: " + folder.name);
       }
 
     }).catch(err => {
